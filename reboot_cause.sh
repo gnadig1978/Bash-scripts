@@ -7,8 +7,8 @@ reboot_cause.sh
 ##                                                                                              ##
 ##       Name :     reboot_cause.sh    
 ##       Usage :                                                                                ##                                                                 
-##       Version:  1.0   Latest                                                                 ##
-##       Author : Gurudatta N.R                                                                ##
+##       Version:   1.0   Latest                                                                 ##
+##       Author :   Gurudatta N.R                                                                ##
 ##       MODIFIED   (MM/DD/YY) : 10/10/2024                                                   ##
 ##                                                                                              ##
 ##                                                                                              ##
