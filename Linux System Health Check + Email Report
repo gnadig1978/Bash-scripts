@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# =========================================================
+# Linux System Health Check + Email Report
+# =========================================================
+
+# -----------------------------
+# Configuration
+# -----------------------------
+EMAIL_TO="admin@example.com"
+EMAIL_SUBJECT="Linux System Health Report - $(hostname)"
+REPORT_FILE="/tmp/system_health_report.html"
+
+# -----------------------------
+# HTML Header
+# -----------------------------
+cat <<EOF > $REPORT_FILE
+<html>
+<head>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+h1 {
+    background-color: #2c3e50;
+    color: white;
+    padding: 10px;
+}
+h2 {
+    background-color: #3498db;
+    color: white;
+    padding: 5px;
+}
+pre {
+    background-color: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+    overflow-x: auto;
+}
+</style>
+</head>
+<body>
+
+<h1>Linux System Health Report</h1>
+
+<p>
+<b>Hostname:</b> $(hostname)<br>
+<b>Date:</b> $(date)
+</p>
+
+EOF
+
+# -----------------------------
+# Function to add section
+# -----------------------------
+add_section () {
+    TITLE=$1
+    COMMAND=$2
+
+    echo "<h2>$TITLE</h2><pre>" >> $REPORT_FILE
+    eval "$COMMAND" >> $REPORT_FILE 2>&1
+    echo "</pre>" >> $REPORT_FILE
+}
+
+# -----------------------------
+# System Checks
+# -----------------------------
+add_section "System Uptime" "uptime"
+
+add_section "Load Average" "cat /proc/loadavg"
+
+add_section "CPU Usage" "top -bn1 | grep 'Cpu(s)'"
+
+add_section "Memory Usage" "free -h"
+
+add_section "Disk Usage" "df -h"
+
+add_section "Disk Usage Alert (>80%)" \
+"df -hP | awk 'NR>1 {
+    gsub(\"%\",\"\",\$5);
+    if (\$5+0 > 80)
+    print \"WARNING:\", \$6, \"is\", \$5\"% full\"
+}'"
+
+add_section "Network Interfaces" "ip -brief address"
+
+add_section "Internet Connectivity" \
+"ping -c 2 8.8.8.8 >/dev/null && echo 'Internet Connection OK' || echo 'Internet Connection FAILED'"
+
+add_section "Top 5 Memory Processes" \
+"ps -eo pid,cmd,%mem,%cpu --sort=-%mem | head -6"
+
+add_section "Top 5 CPU Processes" \
+"ps -eo pid,cmd,%mem,%cpu --sort=-%cpu | head -6"
+
+add_section "Zombie Processes" \
+"ps aux | awk '{ print \$8 }' | grep -c Z"
+
+add_section "Logged In Users" "who"
+
+add_section "Last Failed Login Attempts" "lastb | head"
+
+add_section "Recent System Errors" "dmesg | tail -20"
+
+# -----------------------------
+# HTML Footer
+# -----------------------------
+cat <<EOF >> $REPORT_FILE
+</body>
+</html>
+EOF
+
+# -----------------------------
+# Send Email
+# -----------------------------
+if command -v mail >/dev/null 2>&1; then
+    mail -a "Content-type: text/html" \
+         -s "$EMAIL_SUBJECT" \
+         "$EMAIL_TO" < $REPORT_FILE
+
+    echo "Email sent successfully to $EMAIL_TO"
+else
+    echo "mail command not found."
+    echo "Install mailx package:"
+    echo "RHEL/CentOS: yum install mailx -y"
+    echo "Ubuntu/Debian: apt install mailutils -y"
+fi
